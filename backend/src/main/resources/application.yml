@@ -41,3 +41,4 @@ gemini:
   model: ${GEMINI_MODEL:gemini-2.5-flash}
   embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-2}
   embedding-dimension: ${GEMINI_EMBEDDING_DIMENSION:768}
+  rag-top-k: ${RAG_TOP_K:5}

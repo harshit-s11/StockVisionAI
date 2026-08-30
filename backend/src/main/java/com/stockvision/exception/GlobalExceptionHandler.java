@@ -73,6 +73,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(GeminiUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleGeminiUnavailable(GeminiUnavailableException ex, HttpServletRequest request) {
+        ApiErrorResponse error = new ApiErrorResponse(
+            HttpStatus.SERVICE_UNAVAILABLE.value(),
+            "Service Unavailable",
+            ex.getMessage(),
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
+
+    @ExceptionHandler(GeminiResponseException.class)
+    public ResponseEntity<ApiErrorResponse> handleGeminiResponseException(GeminiResponseException ex, HttpServletRequest request) {
+        ApiErrorResponse error = new ApiErrorResponse(
+            HttpStatus.BAD_GATEWAY.value(),
+            "Bad Gateway",
+            ex.getMessage(),
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();

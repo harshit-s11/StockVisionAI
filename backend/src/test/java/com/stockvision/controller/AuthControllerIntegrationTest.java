@@ -59,7 +59,7 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/register should create user and initial portfolio and return 201")
+    @DisplayName("POST /api/v1/auth/register should create user and initial portfolio and return 201 with UserResponse (id, username, email, role)")
     void testRegisterEndpointSuccess() throws Exception {
         RegisterRequest request = new RegisterRequest("sarah_connor", "sarah@example.com", "SecurePassword123!");
 
@@ -69,10 +69,12 @@ class AuthControllerIntegrationTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.token").isNotEmpty())
             .andExpect(jsonPath("$.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.user.id").isNotEmpty())
             .andExpect(jsonPath("$.user.username").value("sarah_connor"))
             .andExpect(jsonPath("$.user.email").value("sarah@example.com"))
             .andExpect(jsonPath("$.user.role").value("USER"))
-            .andExpect(jsonPath("$.user.cashBalance").value(100000.00));
+            .andExpect(jsonPath("$.user.cashBalance").doesNotExist())
+            .andExpect(jsonPath("$.user.createdAt").doesNotExist());
     }
 
     @Test
@@ -122,7 +124,9 @@ class AuthControllerIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.token").isNotEmpty())
             .andExpect(jsonPath("$.tokenType").value("Bearer"))
-            .andExpect(jsonPath("$.user.username").value("login_trader"));
+            .andExpect(jsonPath("$.user.username").value("login_trader"))
+            .andExpect(jsonPath("$.user.role").value("USER"))
+            .andExpect(jsonPath("$.user.cashBalance").doesNotExist());
     }
 
     @Test
@@ -143,7 +147,7 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/auth/me should return authenticated user details when valid Bearer token provided")
+    @DisplayName("GET /api/v1/auth/me should return only id, username, email, role when valid Bearer token provided")
     void testGetAuthMeSuccess() throws Exception {
         UserEntity user = userRepository.save(new UserEntity("me_user", "me@example.com", "pass", Role.ROLE_USER));
         portfolioRepository.save(new PortfolioEntity(user, new BigDecimal("100000.00")));
@@ -157,7 +161,8 @@ class AuthControllerIntegrationTest {
             .andExpect(jsonPath("$.username").value("me_user"))
             .andExpect(jsonPath("$.email").value("me@example.com"))
             .andExpect(jsonPath("$.role").value("USER"))
-            .andExpect(jsonPath("$.cashBalance").value(100000.00));
+            .andExpect(jsonPath("$.cashBalance").doesNotExist())
+            .andExpect(jsonPath("$.createdAt").doesNotExist());
     }
 
     @Test

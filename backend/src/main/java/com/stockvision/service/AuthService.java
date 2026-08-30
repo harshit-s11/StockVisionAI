@@ -63,7 +63,7 @@ public class AuthService {
         savedUser.setPortfolio(savedPortfolio);
 
         String token = jwtTokenProvider.generateToken(savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
-        UserResponse userResponse = UserResponse.fromEntity(savedUser, savedPortfolio.getCashBalance());
+        UserResponse userResponse = UserResponse.fromEntity(savedUser);
 
         return new AuthResponse(token, "Bearer", jwtTokenProvider.getExpirationTimeSeconds(), userResponse);
     }
@@ -79,11 +79,8 @@ public class AuthService {
             throw new BadCredentialsException("Invalid username or password");
         }
 
-        PortfolioEntity portfolio = portfolioRepository.findByUserId(user.getId()).orElse(null);
-        BigDecimal cashBalance = portfolio != null ? portfolio.getCashBalance() : INITIAL_PORTFOLIO_CASH;
-
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
-        UserResponse userResponse = UserResponse.fromEntity(user, cashBalance);
+        UserResponse userResponse = UserResponse.fromEntity(user);
 
         return new AuthResponse(token, "Bearer", jwtTokenProvider.getExpirationTimeSeconds(), userResponse);
     }
@@ -95,9 +92,6 @@ public class AuthService {
         UserEntity user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        PortfolioEntity portfolio = portfolioRepository.findByUserId(userId).orElse(null);
-        BigDecimal cashBalance = portfolio != null ? portfolio.getCashBalance() : BigDecimal.ZERO;
-
-        return UserResponse.fromEntity(user, cashBalance);
+        return UserResponse.fromEntity(user);
     }
 }

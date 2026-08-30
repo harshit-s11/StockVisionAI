@@ -1,8 +1,6 @@
 package com.stockvision.dto;
 
 import com.stockvision.entity.UserEntity;
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
 public class UserResponse {
@@ -11,29 +9,23 @@ public class UserResponse {
     private String username;
     private String email;
     private String role;
-    private BigDecimal cashBalance;
-    private Instant createdAt;
 
     public UserResponse() {}
 
-    public UserResponse(UUID id, String username, String email, String role, BigDecimal cashBalance, Instant createdAt) {
+    public UserResponse(UUID id, String username, String email, String role) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.role = role;
-        this.cashBalance = cashBalance;
-        this.createdAt = createdAt;
     }
 
-    public static UserResponse fromEntity(UserEntity entity, BigDecimal cashBalance) {
+    public static UserResponse fromEntity(UserEntity entity) {
         String roleStr = entity.getRole() != null ? entity.getRole().name().replace("ROLE_", "") : "USER";
         return new UserResponse(
             entity.getId(),
             entity.getUsername(),
             entity.getEmail(),
-            roleStr,
-            cashBalance,
-            entity.getCreatedAt()
+            roleStr
         );
     }
 
@@ -48,10 +40,4 @@ public class UserResponse {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
-
-    public BigDecimal getCashBalance() { return cashBalance; }
-    public void setCashBalance(BigDecimal cashBalance) { this.cashBalance = cashBalance; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

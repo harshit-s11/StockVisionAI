@@ -77,7 +77,8 @@ class AuthServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("mock.jwt.token");
         assertThat(response.getUser().getUsername()).isEqualTo("john_doe");
-        assertThat(response.getUser().getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(response.getUser().getEmail()).isEqualTo("john@example.com");
+        assertThat(response.getUser().getRole()).isEqualTo("USER");
         verify(userRepository).save(any(UserEntity.class));
         verify(portfolioRepository).save(any(PortfolioEntity.class));
     }
@@ -143,8 +144,6 @@ class AuthServiceTest {
         when(userRepository.findByUsernameIgnoreCase("valid_user")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("CorrectPassword123!", "hashed_password")).thenReturn(true);
 
-        PortfolioEntity portfolio = new PortfolioEntity(user, new BigDecimal("100000.00"));
-        when(portfolioRepository.findByUserId(userId)).thenReturn(Optional.of(portfolio));
         when(jwtTokenProvider.generateToken(eq(userId), eq("valid_user"), eq(Role.ROLE_USER))).thenReturn("mock.jwt.token");
         when(jwtTokenProvider.getExpirationTimeSeconds()).thenReturn(86400L);
 
@@ -153,6 +152,7 @@ class AuthServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("mock.jwt.token");
         assertThat(response.getUser().getUsername()).isEqualTo("valid_user");
+        assertThat(response.getUser().getRole()).isEqualTo("USER");
     }
 
     @Test

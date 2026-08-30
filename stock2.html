@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Predictions</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-color: #7c3aed;
+            --primary-hover: #8b5cf6;
+            --secondary-color: #a855f7;
+            --accent-color: #c084fc;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --info-color: #06b6d4;
+            --text-dark: #f8fafc;
+            --text-light: #9ca3af;
+            --bg-black: #000000;
+            --bg-dark: #0f0f0f;
+            --bg-darker: #1a1a1a;
+            --bg-white: #1a1a1a;
+            --bg-gradient: radial-gradient(ellipse at top, #1a0f2e 0%, #0a0a0a 50%, #000000 100%);
+            --border-light: rgba(124, 58, 237, 0.3);
+            --glass-bg: rgba(0, 0, 0, 0.7);
+            --purple-glow: rgba(124, 58, 237, 0.5);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --purple-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1a0f2e 50%, var(--bg-black) 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: var(--purple-shadow);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23c084fc" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            opacity: 0.5;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 20px var(--purple-glow);
+            text-align: center;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-color) 50%, var(--primary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: purpleGlow 3s ease-in-out infinite alternate;
+        }
+        
+        .stock-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--glass-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            margin-top: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 500;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .header-controls a {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            background: var(--glass-bg);
+            border-radius: 25px;
+            border: 1px solid var(--border-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .header-controls a:hover {
+            background: rgba(124, 58, 237, 0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--purple-shadow);
+            border-color: var(--primary-color);
+        }
+        
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        main {
+            padding: 3rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .card {
+            background: var(--bg-white);
+            border-radius: 20px;
+            box-shadow: var(--purple-shadow);
+            padding: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-light);
+            position: relative;
+            overflow: visible;
+            margin-bottom: 2rem;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--secondary-color));
+            box-shadow: 0 0 10px var(--purple-glow);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 70px -12px rgba(124, 58, 237, 0.4), 0 0 50px rgba(124, 58, 237, 0.2);
+            border-color: var(--primary-color);
+        }
+
+        h2, h3 {
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+        }
+        
+        h3 {
+            font-size: 1.25rem;
+        }
+
+        .predictions-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: var(--bg-darker);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .prediction-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3);
+            border-color: var(--primary-color);
+            background: rgba(124, 58, 237, 0.1);
+        }
+        
+        .prediction-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .prediction-value {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .current-price .value {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            font-weight: 800;
+        }
+
+        .positive {
+            color: var(--success-color);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .positive::before {
+            content: '↑';
+            font-weight: bold;
+        }
+
+        .negative {
+            color: var(--error-color);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .negative::before {
+            content: '↓';
+            font-weight: bold;
+        }
+
+        .chart-container {
+            text-align: center;
+            position: relative;
+            padding: 1rem;
+            background: var(--bg-darker);
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            min-height: 350px;
+            max-height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        img {
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            min-height: 300px;
+            max-height: 400px;
+            margin: 10px 0;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            box-shadow: var(--purple-shadow);
+            transition: all 0.3s ease;
+            background: var(--bg-darker);
+        }
+        
+        img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.4);
+            border-color: var(--primary-color);
+        }
+        
+        .chart-controls {
+            margin-bottom: 1rem;
+        }
+        
+        .chart-controls p {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        
+        /* Enhanced chart for larger screens */
+        @media (min-width: 1200px) {
+            img {
+                max-height: 450px;
+            }
+            
+            .chart-container {
+                min-height: 400px;
+                max-height: 500px;
+                padding: 1.5rem;
+            }
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--primary-color);
+            border-right: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes purpleGlow {
+            from {
+                filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.5));
+            }
+            to {
+                filter: drop-shadow(0 0 40px rgba(124, 58, 237, 0.8));
+            }
+        }
+
+        .error {
+            color: var(--error-color);
+            font-weight: 600;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .error::before {
+            content: '⚠️';
+            font-size: 1.2rem;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--purple-shadow);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .back-button::before {
+            content: '←';
+            font-size: 1.2rem;
+        }
+
+        .back-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.6), 0 0 30px rgba(124, 58, 237, 0.3);
+        }
+        
+        .back-button:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Responsive Design */
+        @media (min-width: 1024px) {
+            .container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+            
+            .header-controls {
+                position: absolute;
+                top: 1rem;
+                right: 2rem;
+                z-index: 2;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+            
+            header {
+                padding: 1.5rem;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            main {
+                padding: 2rem 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .stock-name {
+                display: block;
+                margin: 1rem auto 0 auto;
+                font-size: 1rem;
+                text-align: center;
+            }
+            
+            .header-controls {
+                position: static;
+                flex-direction: row;
+                gap: 0.5rem;
+                margin-top: 1rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .trade-buttons {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .buy-button, .sell-button {
+                width: 100%;
+                margin: 0;
+            }
+            
+            img {
+                min-width: 100%;
+                min-height: 250px;
+                max-height: 300px;
+            }
+            
+            .chart-container {
+                min-height: 300px;
+                max-height: 350px;
+                padding: 0.5rem;
+            }
+        }
+
+        .refresh-indicator {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-top: 1rem;
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--bg-darker);
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+        }
+        
+        footer {
+            margin-top: 3rem;
+            padding: 2rem 0;
+            background: var(--bg-black);
+            color: white;
+            text-align: center;
+            font-weight: 500;
+            border-top: 1px solid var(--border-light);
+        }
+        
+        /* Trade section styling */
+        .trade-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-light);
+            overflow: visible;
+            position: relative;
+        }
+        
+        .portfolio-info {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .portfolio-info::before {
+            content: '📊';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 2rem;
+            opacity: 0.3;
+        }
+
+        .portfolio-info h4 {
+            margin: 0 0 1rem 0;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .cash-balance {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .cash-balance::before {
+            content: '💰';
+        }
+
+        .holdings-info {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(192, 132, 252, 0.1) 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .holdings-info h4 {
+            margin: 0 0 1rem 0;
+            color: var(--accent-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .holdings-info h4::before {
+            content: '📈';
+        }
+
+        .holding-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.75rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+        
+        .holding-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+            border-color: var(--primary-color);
+        }
+        
+        .holding-label {
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+        
+        .holding-value {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .auth-required {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+            border: 1px solid var(--warning-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: var(--warning-color);
+            position: relative;
+        }
+        
+        .auth-required::before {
+            content: '🔐';
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-required a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 8px;
+            margin: 0 0.25rem;
+            transition: all 0.3s ease;
+        }
+        
+        .auth-required a:hover {
+            background: rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .trade-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .quantity-control {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .quantity-control label {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .quantity-control input {
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: var(--bg-darker);
+            color: var(--text-dark);
+        }
+        
+        .quantity-control input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2), 0 0 20px rgba(124, 58, 237, 0.1);
+            background: var(--bg-black);
+            transform: scale(1.02);
+        }
+        
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding: 0;
+            overflow: visible;
+        }
+        
+        .buy-button, .sell-button {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: visible;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 1;
+            min-height: 60px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .buy-button::before,
+        .sell-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .buy-button:hover::before,
+        .sell-button:hover::before {
+            left: 100%;
+        }
+        
+        .buy-button {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            color: white;
+            box-shadow: var(--purple-shadow);
+        }
+        
+        .buy-button:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.2);
+            z-index: 10;
+        }
+        
+        .sell-button {
+            background: linear-gradient(135deg, var(--error-color) 0%, #dc2626 100%);
+            color: white;
+            box-shadow: var(--purple-shadow);
+        }
+        
+        .sell-button:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.4), 0 0 20px rgba(239, 68, 68, 0.2);
+            z-index: 10;
+        }
+        
+        .buy-button:disabled,
+        .sell-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .trade-message {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 500;
+            display: none;
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .trade-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 1px solid var(--success-color);
+            color: #065f46;
+        }
+        
+        .trade-success::before {
+            content: '✓ ';
+            font-weight: bold;
+        }
+
+        .trade-error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 1px solid var(--error-color);
+            color: #991b1b;
+        }
+        
+        .trade-error::before {
+            content: '⚠️ ';
+        }
+
+        /* Trading History Enhancements */
+        .trade-history {
+            margin-top: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-darker);
+        }
+
+        .trade-history table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .trade-history th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-black);
+            padding: 1rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--border-light);
+            z-index: 1;
+        }
+        
+        .trade-history td {
+            padding: 0.875rem 0.75rem;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+            color: var(--text-light);
+        }
+        
+        .trade-history tr:hover {
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        .trade-buy {
+            color: var(--success-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .trade-buy::before {
+            content: '↑';
+        }
+
+        .trade-sell {
+            color: var(--error-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .trade-sell::before {
+            content: '↓';
+        }
+
+        .success-animation {
+            animation: successPulse 0.8s ease-in-out;
+        }
+
+        @keyframes successPulse {
+            0% { 
+                background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+                transform: scale(1); 
+            }
+            50% { 
+                background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+                transform: scale(1.02); 
+            }
+            100% { 
+                background: var(--bg-white);
+                transform: scale(1); 
+            }
+        }
+        
+        /* Responsive Design Enhancements */
+        @media (max-width: 480px) {
+            .card {
+                padding: 1rem;
+            }
+            
+            .prediction-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-controls" id="headerControls">
+            <span id="userGreeting" style="display: none;"></span>
+            <a href="/portfolio" id="portfolioLink" style="display: none; cursor: pointer;" role="button" tabindex="0">📊 Portfolio</a>
+            <a href="/login" id="loginLink" style="cursor: pointer;" role="button" tabindex="0">🔐 Login</a>
+            <a href="/logout" id="logoutLink" style="display: none; cursor: pointer;" role="button" tabindex="0">🚪 Logout</a>
+        </div>
+        <div class="header-content">
+            <h1>📈 Stock Analysis for</h1>
+            <span id="stock" class="stock-name">Loading...</span>
+        </div>
+    </header>
+    <main>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading comprehensive stock analysis and AI predictions...</span>
+
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div class="container" id="content" style="display: none;">
+            <div class="card">
+                <h2>🔮 Price Predictions</h2>
+                <ul class="predictions-list">
+                    <li class="prediction-item current-price">
+                        <span class="prediction-label">📉 Current Price:</span>
+                        <span class="prediction-value">₹<span id="current_price" class="value"></span></span>
+                    </li>
+                    <li class="prediction-item">
+                        <span class="prediction-label">⏱️ Next Minute:</span>
+                        <div class="prediction-value">
+                            <span>₹<span id="next_minute" class="value"></span></span>
+                            <span id="minute_change"></span>
+                        </div>
+                    </li>
+                    <li class="prediction-item">
+                        <span class="prediction-label">🕐 Next Hour:</span>
+                        <div class="prediction-value">
+                            <span>₹<span id="next_hour" class="value"></span></span>
+                            <span id="hour_change"></span>
+                        </div>
+                    </li>
+                    <li class="prediction-item">
+                        <span class="prediction-label">📅 Next Day:</span>
+                        <div class="prediction-value">
+                            <span>₹<span id="next_day" class="value"></span></span>
+                            <span id="day_change"></span>
+                        </div>
+                    </li>
+                </ul>
+                <p class="refresh-indicator">🔄 Data updated as of <span id="update_time"></span></p>
+                
+                <!-- Enhanced Trade Section -->
+                <div class="trade-section">
+                    <h3>💼 Trading Hub</h3>
+                    
+                    <!-- Portfolio Info for authenticated users -->
+                    <div id="portfolioInfo" class="portfolio-info" style="display: none;">
+                        <h4>📊 Your Portfolio Overview</h4>
+                        <div class="cash-balance">Cash Available: ₹<span id="cashBalance">0.00</span></div>
+                    </div>
+                    
+                    <!-- Current Holdings for this stock -->
+                    <div id="holdingsInfo" class="holdings-info" style="display: none;">
+                        <h4>Your Position in <span id="holdingsStockName"></span></h4>
+                        <div id="holdingsDetails">
+                            <div class="holding-item">
+                                <span class="holding-label">Shares Owned:</span>
+                                <span class="holding-value" id="holdingQuantity">0</span>
+                            </div>
+                            <div class="holding-item">
+                                <span class="holding-label">Average Price:</span>
+                                <span class="holding-value">₹<span id="holdingAvgPrice">0.00</span></span>
+                            </div>
+                            <div class="holding-item">
+                                <span class="holding-label">Total Invested:</span>
+                                <span class="holding-value">₹<span id="holdingInvested">0.00</span></span>
+                            </div>
+                            <div class="holding-item">
+                                <span class="holding-label">Current Value:</span>
+                                <span class="holding-value" id="holdingCurrentValue">₹0.00</span>
+                            </div>
+                            <div class="holding-item">
+                                <span class="holding-label">Profit/Loss:</span>
+                                <span class="holding-value" id="holdingPnL">₹0.00 (0.00%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Authentication required message -->
+                    <div id="authRequired" class="auth-required" style="display: none;">
+                        <p>Start your investment journey with virtual trading!</p>
+                        <p>Please <a href="/login">login</a> or <a href="/register">create an account</a> to begin trading with ₹1,000,000 virtual money.</p>
+                    </div>
+                    
+                    <div class="trade-controls">
+                        <div class="quantity-control">
+                            <label for="buy-quantity">💰 Buy Quantity:</label>
+                            <input type="number" id="buy-quantity" min="1" value="100" placeholder="Enter shares to buy">
+                        </div>
+                        
+                        <div class="quantity-control">
+                            <label for="sell-quantity">💸 Sell Quantity:</label>
+                            <input type="number" id="sell-quantity" min="1" value="100" placeholder="Enter shares to sell">
+                        </div>
+                    </div>
+                    
+                    <div class="trade-buttons">
+                        <button class="buy-button" id="buyButton" onclick="executeTrade('BUY')">🚀 BUY SHARES</button>
+                        <button class="sell-button" id="sellButton" onclick="executeTrade('SELL')">💰 SELL SHARES</button>
+                    </div>
+                    
+                    <div id="tradeMessage" class="trade-message"></div>
+                </div>
+            </div>
+            
+            <div class="card full-width">
+                <h2>📈 Interactive Price Chart</h2>
+                <div class="chart-controls">
+                    <p style="color: var(--text-light); margin-bottom: 1rem; text-align: center;">
+                        📊 AI-Generated Predictive Analysis Chart
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <img id="graph" src="" alt="AI-Generated Stock Prediction Chart">
+                </div>
+            </div>
+            
+            <!-- Enhanced Trading History for authenticated users -->
+            <div class="card full-width" id="tradingHistoryCard" style="display: none;">
+                <h2>📜 Your Trading History - <span id="historyStockName"></span></h2>
+                <div class="trade-history">
+                    <div id="noTradeHistory" style="display: none; text-align: center; color: #6c757d; padding: 2rem;">
+                        <p>📄 No trading history for this stock yet.</p>
+                        <p>Start trading to see your transaction history here!</p>
+                    </div>
+                    <table id="tradeHistoryTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>📅 Date</th>
+                                <th>🔄 Type</th>
+                                <th>📈 Quantity</th>
+                                <th>💰 Price</th>
+                                <th>💸 Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradeHistoryBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <button class="back-button" onclick="window.location.href='/'">Back to Stock Selection</button>
+    </main>
+    
+    <footer>
+        © 2025 Stock Prediction Platform | Built for Financial Professionals
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let currentStock = null;
+        let currentPrice = 0;
+        
+        // Debug function to log messages
+        function debugLog(message) {
+            console.log(`[StockVision Debug] ${message}`);
+        }
+        
+        // Check authentication status
+        function checkAuthStatus() {
+            debugLog("checkAuthStatus called");
+            // Use injected auth data if available, otherwise fetch from server
+            if (window.authData) {
+                debugLog("Using injected auth data: " + JSON.stringify(window.authData));
+                currentUser = window.authData;
+                updateAuthUI(window.authData);
+                if (window.authData.authenticated) {
+                    debugLog("User is authenticated, fetching portfolio info");
+                    fetchPortfolioInfo();
+                } else {
+                    debugLog("User is NOT authenticated (guest)");
+                }
+                return;
+            }
+            
+            debugLog("No injected auth data, fetching from server");
+            // Fallback to server request
+            fetch('/auth_status', {
+                credentials: 'include'
+            })
+                .then(response => {
+                    debugLog("auth_status response received, status: " + response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog("auth_status data received: " + JSON.stringify(data));
+                    currentUser = data;
+                    updateAuthUI(data);
+                    if (data.authenticated) {
+                        fetchPortfolioInfo();
+                    }
+                })
+                .catch(error => {
+                    debugLog("auth_status error: " + error.message);
+                    currentUser = {authenticated: false};
+                    updateAuthUI({authenticated: false});
+                });
+        }
+        
+        // Enhanced authentication UI with animations
+        function updateAuthUI(authData) {
+            debugLog("updateAuthUI called with: " + JSON.stringify(authData));
+
+            const userGreeting = document.getElementById('userGreeting');
+            const portfolioLink = document.getElementById('portfolioLink');
+            const loginLink = document.getElementById('loginLink');
+            const logoutLink = document.getElementById('logoutLink');
+            const portfolioInfo = document.getElementById('portfolioInfo');
+            const holdingsInfo = document.getElementById('holdingsInfo');
+            const authRequired = document.getElementById('authRequired');
+            const buyButton = document.getElementById('buyButton');
+            const sellButton = document.getElementById('sellButton');
+            const tradingHistoryCard = document.getElementById('tradingHistoryCard');
+            
+            if (authData.authenticated) {
+                debugLog("User is authenticated, showing authenticated UI");
+
+                userGreeting.textContent = `👋 Welcome, ${authData.username}!`;
+                userGreeting.style.display = 'inline';
+                userGreeting.style.animation = 'fadeInRight 0.5s ease-out';
+                portfolioLink.style.display = 'inline';
+                loginLink.style.display = 'none';
+                logoutLink.style.display = 'inline';
+                
+                // Ensure the links have proper href attributes and work correctly
+                portfolioLink.href = '/portfolio';
+                logoutLink.href = '/logout';
+                
+                // Remove any existing event listeners and add new ones
+                portfolioLink.onclick = null;
+                logoutLink.onclick = null;
+                
+                // Add click event listeners to ensure proper navigation
+                portfolioLink.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = '/portfolio';
+                };
+                
+                logoutLink.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Show logout confirmation or directly logout
+                    if (confirm('Are you sure you want to logout?')) {
+                        window.location.href = '/logout';
+                    }
+                };
+                
+                // Animate portfolio sections
+                setTimeout(() => {
+                    portfolioInfo.style.display = 'block';
+                    portfolioInfo.style.animation = 'slideInUp 0.6s ease-out';
+                }, 200);
+                
+                setTimeout(() => {
+                    holdingsInfo.style.display = 'block';
+                    holdingsInfo.style.animation = 'slideInUp 0.6s ease-out';
+                }, 400);
+                
+                authRequired.style.display = 'none';
+                tradingHistoryCard.style.display = 'block';
+                buyButton.disabled = false;
+                sellButton.disabled = false;
+                
+                // Update stock names in holdings and history with animation
+                if (currentStock) {
+                    document.getElementById('holdingsStockName').textContent = currentStock;
+                    document.getElementById('historyStockName').textContent = currentStock;
+                }
+            } else {
+                debugLog("User is NOT authenticated (guest), showing guest UI");
+
+                userGreeting.style.display = 'none';
+                portfolioLink.style.display = 'none';
+                loginLink.style.display = 'inline';
+                logoutLink.style.display = 'none';
+                portfolioInfo.style.display = 'none';
+                holdingsInfo.style.display = 'none';
+                authRequired.style.display = 'block';
+                authRequired.style.animation = 'slideInUp 0.5s ease-out';
+                tradingHistoryCard.style.display = 'none';
+                buyButton.disabled = true;
+                sellButton.disabled = true;
+                
+                // Ensure login link works properly
+                loginLink.href = '/login';
+                loginLink.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = '/login';
+                };
+                
+                // IMPORTANT: Guests should still be able to see stock predictions and analysis
+                // The content div should remain visible for guests
+                // Make sure the content is visible for guests too
+                const contentDiv = document.getElementById('content');
+                if (contentDiv) {
+                    debugLog("Showing content div for guest");
+                    contentDiv.style.display = 'flex';
+                }
+                
+                // Additional check for guest access
+                if (window.guestAccessEnabled) {
+                    debugLog("Guest access explicitly enabled");
+                    // Ensure content is visible
+                    if (contentDiv) {
+                        contentDiv.style.display = 'flex';
+                    }
+                }
+            }
+        }
+        
+        // Fetch portfolio information
+        function fetchPortfolioInfo() {
+            // Fetch basic portfolio data
+            fetch('/portfolio_data', {
+                credentials: 'include'
+            })
+                .then(response => {
+                    // Handle unauthorized access for guests
+                    if (response.status === 401) {
+                        // Guest access - do nothing, this is expected
+                        return Promise.resolve(null);
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.cash_balance !== undefined) {
+                        document.getElementById('cashBalance').textContent = data.cash_balance.toFixed(2);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching portfolio data:', error);
+                });
+            
+            // Fetch holdings for current stock
+            if (currentStock) {
+                fetchStockHoldings();
+                fetchTradingHistory();
+            }
+        }
+        
+        // Fetch holdings for current stock
+        function fetchStockHoldings() {
+            fetch(`/stock_holdings?stock=${currentStock}`, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    // Handle unauthorized access for guests
+                    if (response.status === 401) {
+                        // Guest access - do nothing, this is expected
+                        return Promise.resolve(null);
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.holding) {
+                        const holding = data.holding;
+                        document.getElementById('holdingQuantity').textContent = holding.quantity;
+                        document.getElementById('holdingAvgPrice').textContent = holding.average_price.toFixed(2);
+                        
+                        const invested = holding.quantity * holding.average_price;
+                        document.getElementById('holdingInvested').textContent = invested.toFixed(2);
+                        
+                        const currentValue = holding.quantity * currentPrice;
+                        const pnl = currentValue - invested;
+                        const pnlPercentage = (pnl / invested) * 100;
+                        
+                        document.getElementById('holdingCurrentValue').textContent = `₹${currentValue.toFixed(2)}`;
+                        
+                        const pnlElement = document.getElementById('holdingPnL');
+                        pnlElement.textContent = `₹${pnl.toFixed(2)} (${pnlPercentage.toFixed(2)}%)`;
+                        pnlElement.style.color = pnl >= 0 ? '#28a745' : '#dc3545';
+                    } else if (data) {
+                        // No holdings for this stock
+                        document.getElementById('holdingQuantity').textContent = '0';
+                        document.getElementById('holdingAvgPrice').textContent = '0.00';
+                        document.getElementById('holdingInvested').textContent = '0.00';
+                        document.getElementById('holdingCurrentValue').textContent = '₹0.00';
+                        document.getElementById('holdingPnL').textContent = '₹0.00 (0.00%)';
+                        document.getElementById('holdingPnL').style.color = '#6c757d';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching stock holdings:', error);
+                });
+        }
+        
+        // Fetch trading history for current stock
+        function fetchTradingHistory() {
+            fetch(`/trading_history?stock=${currentStock}`, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    // Handle unauthorized access for guests
+                    if (response.status === 401) {
+                        // Guest access - do nothing, this is expected
+                        return Promise.resolve(null);
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        const historyTable = document.getElementById('tradeHistoryTable');
+                        const noHistoryDiv = document.getElementById('noTradeHistory');
+                        const historyBody = document.getElementById('tradeHistoryBody');
+                        
+                        if (data.transactions && data.transactions.length > 0) {
+                            historyTable.style.display = 'table';
+                            noHistoryDiv.style.display = 'none';
+                            
+                            historyBody.innerHTML = '';
+                            data.transactions.forEach(transaction => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${new Date(transaction.timestamp).toLocaleDateString()}</td>
+                                    <td class="trade-${transaction.transaction_type.toLowerCase()}">${transaction.transaction_type}</td>
+                                    <td>${transaction.quantity}</td>
+                                    <td>₹${transaction.price.toFixed(2)}</td>
+                                    <td>₹${transaction.total_amount.toFixed(2)}</td>
+                                `;
+                                historyBody.appendChild(row);
+                            });
+                        } else {
+                            historyTable.style.display = 'none';
+                            noHistoryDiv.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching trading history:', error);
+                });
+        }
+        
+        // Enhanced trade execution with visual feedback
+        function executeTrade(action) {
+            if (!currentUser || !currentUser.authenticated) {
+                showTradeMessage('Please login to start trading with virtual money! 🚀', 'error');
+                // Redirect to login page after a short delay
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+                return;
+            }
+            
+            const quantity = action === 'BUY' ? 
+                parseInt(document.getElementById('buy-quantity').value) : 
+                parseInt(document.getElementById('sell-quantity').value);
+            
+            if (!quantity || quantity <= 0) {
+                showTradeMessage('Please enter a valid quantity (minimum 1 share) 🔢', 'error');
+                return;
+            }
+            
+            if (!currentStock) {
+                showTradeMessage('Stock information not available. Please refresh the page. 🔄', 'error');
+                return;
+            }
+            
+            const tradeData = {
+                stock_name: currentStock,
+                quantity: quantity,
+                action: action
+            };
+            
+            // Enhanced loading state with visual feedback
+            const buyButton = document.getElementById('buyButton');
+            const sellButton = document.getElementById('sellButton');
+            const activeButton = action === 'BUY' ? buyButton : sellButton;
+            const originalText = activeButton.textContent;
+            
+            buyButton.disabled = true;
+            sellButton.disabled = true;
+            buyButton.style.opacity = '0.6';
+            sellButton.style.opacity = '0.6';
+            
+            // Add enhanced loading animation
+            activeButton.innerHTML = `<div class="loading-spinner" style="width: 16px; height: 16px; display: inline-block; margin-right: 8px;"></div>${action === 'BUY' ? 'BUYING...' : 'SELLING...'}`;
+            activeButton.style.opacity = '1';
+            activeButton.style.transform = 'scale(0.98)';
+            
+            fetch('/trade', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(tradeData)
+            })
+            .then(response => {
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    showTradeMessage('Please login to start trading with virtual money! 🚀', 'error');
+                    // Redirect to login page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                    return Promise.reject(new Error('Unauthorized'));
+                }
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Network response was not ok');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showTradeMessage(`⚠️ ${data.error}`, 'error');
+                } else {
+                    const transaction = data.transaction;
+                    const emoji = transaction.type === 'BUY' ? '🚀' : '💰';
+                    showTradeMessage(
+                        `${emoji} ${transaction.type} order executed successfully! \n${transaction.quantity} shares of ${transaction.stock} at ₹${transaction.price.toFixed(2)}`, 
+                        'success'
+                    );
+                    
+                    // Enhanced success feedback
+                    activeButton.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        activeButton.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    // Update cash balance with animation
+                    const cashElement = document.getElementById('cashBalance');
+                    cashElement.style.animation = 'successPulse 0.8s ease-in-out';
+                    cashElement.textContent = data.new_cash_balance.toFixed(2);
+                    
+                    // Refresh data with staggered animations
+                    setTimeout(() => fetchStockHoldings(), 300);
+                    setTimeout(() => fetchTradingHistory(), 600);
+                    
+                    // Add celebration animation to trade section
+                    const tradeSection = document.querySelector('.trade-section');
+                    tradeSection.classList.add('success-animation');
+                    setTimeout(() => {
+                        tradeSection.classList.remove('success-animation');
+                    }, 800);
+                }
+            })
+            .catch(error => {
+                console.error('Trade error:', error);
+                showTradeMessage('⚠️ An error occurred during trading. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Reset buttons with smooth transition
+                setTimeout(() => {
+                    activeButton.innerHTML = originalText;
+                    activeButton.style.transform = 'scale(1)';
+                    
+                    if (currentUser && currentUser.authenticated) {
+                        buyButton.disabled = false;
+                        sellButton.disabled = false;
+                        buyButton.style.opacity = '1';
+                        sellButton.style.opacity = '1';
+                    }
+                }, 500);
+            });
+        }
+        
+        // Show trade message
+        function showTradeMessage(message, type) {
+            const messageDiv = document.getElementById('tradeMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `trade-message trade-${type}`;
+            messageDiv.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Format date and time for display
+        function formatDateTime(date) {
+            return date.toLocaleString();
+        }
+        
+        // Enhanced percentage change calculation with visual feedback
+        function calculateChange(predicted, current) {
+            const change = ((predicted - current) / current) * 100;
+            const formattedChange = Math.abs(change).toFixed(2) + '%';
+            const element = document.createElement('span');
+            
+            if (change > 0) {
+                element.classList.add('positive');
+                element.innerHTML = `<span style="color: var(--success-color); font-weight: 700;">↑ +${formattedChange}</span>`;
+            } else if (change < 0) {
+                element.classList.add('negative');
+                element.innerHTML = `<span style="color: var(--error-color); font-weight: 700;">↓ -${formattedChange}</span>`;
+            } else {
+                element.innerHTML = `<span style="color: var(--text-light); font-weight: 600;">→ ${formattedChange}</span>`;
+            }
+            
+            return element.outerHTML;
+        }
+        
+        // Extract stock name from URL - support both /stock/StockName and ?stock=StockName formats
+        function getStockFromURL() {
+            // Check if it's the new route format /stock/StockName
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length >= 3 && pathParts[1] === 'stock') {
+                return pathParts[2];
+            }
+            
+            // Fallback to query parameter format for compatibility
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('stock');
+        }
+        
+        // Initialize stock data loading
+        function initializeStockData() {
+            debugLog("initializeStockData called");
+            // Get stock from injected data or URL fallback
+            const stock = window.stockName || getStockFromURL();
+            debugLog("Stock name: " + stock);
+            currentStock = stock;
+
+            if (!stock) {
+                debugLog("No stock selected, showing error");
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').innerText = 'Error: No stock selected! Please navigate from the homepage.';
+                return;
+            }
+            
+            document.getElementById('stock').innerText = stock;
+
+            // Add timeout to handle API failures
+            const fetchTimeout = setTimeout(() => {
+                debugLog("Stock data fetch timeout");
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').innerText = 'Error: Request timed out. The server might be down or experiencing high load.';
+            }, 30000); // 30 seconds timeout
+            
+            debugLog("Fetching stock data for: " + stock);
+            fetch(`/get_stock_data?stock=${stock}`, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    debugLog("get_stock_data response received, status: " + response.status);
+                    clearTimeout(fetchTimeout);
+                    
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.error || ("HTTP error! Status: "+response.status));
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog("get_stock_data data received: " + JSON.stringify(data));
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (data.error) {
+                        debugLog("get_stock_data returned error: " + data.error);
+                        document.getElementById('error').style.display = 'block';
+                        document.getElementById('error').innerText = data.error;
+                    } else {
+                        debugLog("get_stock_data successful, showing content");
+                        // Show content
+                        document.getElementById('content').style.display = 'flex';
+                        
+                        // Additional check to ensure content is visible for guests
+                        if (window.guestAccessEnabled || !currentUser.authenticated) {
+                            debugLog("Ensuring content visibility for guest user");
+                            document.getElementById('content').style.display = 'flex';
+                        }
+                        
+                        // Update values
+                        const currentPriceValue = data.last_price;
+                        currentPrice = currentPriceValue; // Store for trading
+                        const minutePrice = data.predictions.next_minute;
+                        const hourPrice = data.predictions.next_hour;
+                        const dayPrice = data.predictions.next_day;
+                        
+                        document.getElementById('current_price').innerText = currentPriceValue.toFixed(2);
+                        document.getElementById('next_minute').innerText = minutePrice.toFixed(2);
+                        document.getElementById('next_hour').innerText = hourPrice.toFixed(2);
+                        document.getElementById('next_day').innerText = dayPrice.toFixed(2);
+                        
+                        // Calculate and show percentage changes
+                        document.getElementById('minute_change').innerHTML = calculateChange(minutePrice, currentPrice);
+                        document.getElementById('hour_change').innerHTML = calculateChange(hourPrice, currentPrice);
+                        document.getElementById('day_change').innerHTML = calculateChange(dayPrice, currentPrice);
+                        
+                        // Set update time
+                        document.getElementById('update_time').innerText = formatDateTime(new Date());
+                        
+                        // Load graph
+                        const graphImg = document.getElementById('graph');
+                        const chartContainer = graphImg.parentNode;
+                        
+                        // Add loading state for chart
+                        const chartLoading = document.createElement('div');
+                        chartLoading.className = 'chart-loading';
+                        chartLoading.innerHTML = `
+                            <div class="loading-spinner"></div>
+                            <span>Generating AI Prediction Chart...</span>
+                        `;
+                        chartLoading.style.cssText = `
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 1rem;
+                            color: var(--primary-color);
+                            font-weight: 500;
+                        `;
+                        chartContainer.appendChild(chartLoading);
+                        
+                        graphImg.onload = function() {
+                            debugLog("Graph image loaded successfully");
+                            chartLoading.remove();
+                            graphImg.style.opacity = '0';
+                            graphImg.style.transform = 'scale(0.95)';
+                            graphImg.style.transition = 'all 0.5s ease';
+                            setTimeout(() => {
+                                graphImg.style.opacity = '1';
+                                graphImg.style.transform = 'scale(1)';
+                            }, 100);
+                        };
+                        
+                        graphImg.src = data.graph_url;
+                        graphImg.onerror = function() {
+                            debugLog("Graph image failed to load");
+                            chartLoading.remove();
+                            graphImg.src = ''; 
+                            graphImg.alt = 'Error loading graph';
+                            graphImg.style.display = 'none';
+                            const errorMsg = document.createElement('div');
+                            errorMsg.innerHTML = `
+                                <div style="color: var(--error-color); text-align: center; padding: 2rem;">
+                                    <h3>📊 Chart Unavailable</h3>
+                                    <p>Unable to load the prediction chart. Please refresh the page to try again.</p>
+                                    <button onclick="window.location.reload()" style="
+                                        margin-top: 1rem;
+                                        padding: 0.75rem 1.5rem;
+                                        background: var(--primary-color);
+                                        color: white;
+                                        border: none;
+                                        border-radius: 8px;
+                                        cursor: pointer;
+                                        font-weight: 600;
+                                    ">🔄 Refresh Page</button>
+                                </div>
+                            `;
+                            chartContainer.appendChild(errorMsg);
+                        };
+                    }
+                })
+                .catch(error => {
+                    debugLog("get_stock_data error: " + error.message);
+                    clearTimeout(fetchTimeout);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').innerText = `Error: ${error.message || 'Unknown error occurred'}`;
+                    
+                    // Ensure content is still visible for guests even if there's an error
+                    if (window.guestAccessEnabled || !currentUser.authenticated) {
+                        debugLog("Showing content for guest despite error");
+                        const contentDiv = document.getElementById('content');
+                        if (contentDiv) {
+                            contentDiv.style.display = 'flex';
+                        }
+                    }
+                });
+        }
+
+        // Check authentication on page load and periodically
+        // Initialize the application
+        checkAuthStatus();
+        
+        // Initialize stock data loading
+        setTimeout(() => {
+            initializeStockData();
+        }, 200);
+        
+        // Ensure content is visible for guests immediately
+        if (window.guestAccessEnabled) {
+            const contentDiv = document.getElementById('content');
+            if (contentDiv) {
+                contentDiv.style.display = 'flex';
+            }
+        }
+        
+        // Note: Removed redirect prevention code that was causing issues for guests
+        
+        // Periodic authentication check (every 5 minutes)
+        setInterval(checkAuthStatus, 5 * 60 * 1000);
+        
+        // Also check authentication when the page becomes visible again
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                checkAuthStatus();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockvision.client.GeminiClient;
 import com.stockvision.dto.AiChatRequest;
 import com.stockvision.dto.StockAnalysisRequest;
+import com.stockvision.entity.HoldingEntity;
 import com.stockvision.entity.PortfolioEntity;
 import com.stockvision.entity.Role;
 import com.stockvision.entity.StockEntity;
 import com.stockvision.entity.UserEntity;
+import com.stockvision.exception.GeminiResponseException;
+import com.stockvision.exception.GeminiUnavailableException;
 import com.stockvision.repository.HoldingRepository;
 import com.stockvision.repository.PortfolioRepository;
 import com.stockvision.repository.StockRepository;
@@ -74,14 +77,15 @@ class AiAdvisorControllerIntegrationTest {
         stockRepository.deleteAll();
 
         user = userRepository.save(new UserEntity("ai_user", "ai@example.com", "pass", Role.ROLE_USER));
-        portfolio = portfolioRepository.save(new PortfolioEntity(user, new BigDecimal("100000.00")));
-        tcs = stockRepository.save(new StockEntity("TCS", "Tata Consultancy Services Ltd.", "IT",
+        portfolio = portfolioRepository.save(new PortfolioEntity(user, new BigDecimal("80750.00")));
+        tcs = stockRepository.save(new StockEntity("TCS", "Tata Consultancy Services Ltd.", "Information Technology",
             new BigDecimal("3850.00"), new BigDecimal("3810.00")));
+        holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
 
         token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         when(geminiClient.generateText(anyString(), anyString()))
-            .thenReturn("Your portfolio is well-balanced with ₹100,000 cash reserves.");
+            .thenReturn("Your portfolio holds ₹80,750 in cash and 5 shares of TCS.");
         when(geminiClient.generateEmbedding(anyString()))
             .thenReturn(new float[768]);
     }
@@ -96,7 +100,7 @@ class AiAdvisorControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.answer").isNotEmpty())
+            .andExpect(jsonPath("$.answer").value("Your portfolio holds ₹80,750 in cash and 5 shares of TCS."))
             .andExpect(jsonPath("$.disclaimer").isNotEmpty())
             .andExpect(jsonPath("$.sources").isArray());
     }
@@ -110,7 +114,58 @@ class AiAdvisorControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.status").value(401));
+            .andExpect(jsonPath("$.status").value(401))
+            .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/ai/chat with blank message should return 400 Bad Request")
+    void testChatEndpointBlankMessage() throws Exception {
+        AiChatRequest request = new AiChatRequest("   ");
+
+        mockMvc.perform(post("/api/v1/ai/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/ai/chat when Gemini is unconfigured/unavailable should return 503 Service Unavailable")
+    void testChatGeminiUnavailableReturns503() throws Exception {
+        when(geminiClient.generateText(anyString(), anyString()))
+            .thenThrow(new GeminiUnavailableException("Gemini API key is not configured. Set GEMINI_API_KEY environment variable."));
+
+        AiChatRequest request = new AiChatRequest("How diversified is my portfolio?");
+
+        mockMvc.perform(post("/api/v1/ai/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.status").value(503))
+            .andExpect(jsonPath("$.error").value("Service Unavailable"))
+            .andExpect(jsonPath("$.message").value(containsString("Gemini API key is not configured")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/ai/chat when Gemini returns malformed response should return 502 Bad Gateway")
+    void testChatGeminiResponseErrorReturns502() throws Exception {
+        when(geminiClient.generateText(anyString(), anyString()))
+            .thenThrow(new GeminiResponseException("Gemini returned an empty or malformed response"));
+
+        AiChatRequest request = new AiChatRequest("Explain asset allocation");
+
+        mockMvc.perform(post("/api/v1/ai/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadGateway())
+            .andExpect(jsonPath("$.status").value(502))
+            .andExpect(jsonPath("$.error").value("Bad Gateway"))
+            .andExpect(jsonPath("$.message").value(containsString("empty or malformed response")));
     }
 
     @Test
@@ -132,6 +187,19 @@ class AiAdvisorControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/ai/analyze-stock without token should return 401 Unauthorized")
+    void testAnalyzeStockUnauthorized() throws Exception {
+        StockAnalysisRequest request = new StockAnalysisRequest("TCS");
+
+        mockMvc.perform(post("/api/v1/ai/analyze-stock")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.status").value(401))
+            .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/ai/analyze-stock for unknown symbol should return 404")
     void testAnalyzeStockNotFound() throws Exception {
         StockAnalysisRequest request = new StockAnalysisRequest("UNKNOWN_TICKER");
@@ -141,6 +209,7 @@ class AiAdvisorControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.status").value(404));
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.error").value("Not Found"));
     }
 }

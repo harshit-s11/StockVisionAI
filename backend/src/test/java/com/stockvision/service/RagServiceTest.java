@@ -16,6 +16,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,5 +62,34 @@ class RagServiceTest {
         List<FinancialKnowledgeDocEntity> results = ragService.retrieveRelevantKnowledge("   ", 5);
         assertThat(results).isEmpty();
         verifyNoInteractions(embeddingService);
+    }
+
+    @Test
+    @DisplayName("Should fallback to findAll when Gemini is unconfigured")
+    void testFallbackWhenGeminiUnconfigured() {
+        geminiProperties.setApiKey(null);
+        FinancialKnowledgeDocEntity doc = new FinancialKnowledgeDocEntity(
+            "Basic Doc", "Basic Content", 0, "Source", null
+        );
+        when(docRepository.findAll()).thenReturn(List.of(doc));
+
+        List<FinancialKnowledgeDocEntity> results = ragService.retrieveRelevantKnowledge("portfolio", 3);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getTitle()).isEqualTo("Basic Doc");
+        verifyNoInteractions(embeddingService);
+    }
+
+    @Test
+    @DisplayName("Should fallback to findAll gracefully when embeddingService throws exception")
+    void testFallbackWhenEmbeddingFails() {
+        when(embeddingService.embedText("portfolio")).thenThrow(new RuntimeException("Embedding generation failed"));
+        FinancialKnowledgeDocEntity doc = new FinancialKnowledgeDocEntity(
+            "Fallback Doc", "Fallback Content", 0, "Source", null
+        );
+        when(docRepository.findAll()).thenReturn(List.of(doc));
+
+        List<FinancialKnowledgeDocEntity> results = ragService.retrieveRelevantKnowledge("portfolio", 3);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getTitle()).isEqualTo("Fallback Doc");
     }
 }

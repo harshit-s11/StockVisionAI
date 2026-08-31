@@ -82,6 +82,10 @@ class TradeControllerIntegrationTest {
         token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
     }
 
+    // ==========================================
+    // POSITIVE LIFECYCLE TESTS
+    // ==========================================
+
     @Test
     @DisplayName("POST /api/v1/trades/buy should execute BUY, deduct cash, create holding and transaction")
     void testBuySuccess() throws Exception {
@@ -141,39 +145,6 @@ class TradeControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/trades/buy with insufficient cash should reject trade and make no mutations")
-    void testBuyInsufficientCash() throws Exception {
-        // Requires 385,000, but only have 100,000
-        TradeRequest request = new TradeRequest("TCS", 100);
-
-        mockMvc.perform(post("/api/v1/trades/buy")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.message").value(containsString("Insufficient cash balance")));
-
-        PortfolioEntity unchanged = portfolioRepository.findById(portfolio.getId()).orElseThrow();
-        assertThat(unchanged.getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
-        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
-        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("POST /api/v1/trades/buy with unknown stock should return 404")
-    void testBuyUnknownStock() throws Exception {
-        TradeRequest request = new TradeRequest("UNKNOWN_TICKER", 1);
-
-        mockMvc.perform(post("/api/v1/trades/buy")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
     @DisplayName("POST /api/v1/trades/sell partial quantity should credit cash and keep averageBuyPrice unchanged")
     void testSellPartialSuccess() throws Exception {
         // Setup initial holding: 10 shares @ 3850, Cash: 50,000
@@ -229,36 +200,6 @@ class TradeControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/trades/sell when not owning stock should return 400 Insufficient Holdings")
-    void testSellNotOwnedStock() throws Exception {
-        TradeRequest request = new TradeRequest("INFY", 5);
-
-        mockMvc.perform(post("/api/v1/trades/sell")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.message").value(containsString("Insufficient holdings")));
-    }
-
-    @Test
-    @DisplayName("POST /api/v1/trades/sell with quantity greater than owned should return 400 Insufficient Holdings")
-    void testSellQuantityExceedsOwned() throws Exception {
-        holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
-
-        TradeRequest request = new TradeRequest("TCS", 10);
-
-        mockMvc.perform(post("/api/v1/trades/sell")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.message").value(containsString("Insufficient holdings")));
-    }
-
-    @Test
     @DisplayName("Server Price Test: Execution price must strictly be resolved from database stock price")
     void testServerPriceResolutionMandatory() throws Exception {
         TradeRequest request = new TradeRequest("INFY", 2);
@@ -270,5 +211,211 @@ class TradeControllerIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.executionPrice").value(1620.00))
             .andExpect(jsonPath("$.totalValue").value(3240.00));
+    }
+
+    // ==========================================
+    // NEGATIVE & VALIDATION INTEGRATION TESTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Negative Test: BUY with insufficient cash should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testBuyInsufficientCash_RejectsAndLeavesStateUnchanged() throws Exception {
+        // Baseline: cash = 100,000.00, 0 holdings, 0 transactions
+        BigDecimal initialCash = portfolio.getCashBalance();
+        assertThat(initialCash).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+
+        // Attempt BUY requiring 385,000.00 (100 shares @ 3850)
+        TradeRequest request = new TradeRequest("TCS", 100);
+
+        mockMvc.perform(post("/api/v1/trades/buy")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.message").value(containsString("Insufficient cash balance")));
+
+        // Verify state is completely unchanged
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Negative Test: SELL more shares than owned should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testSellQuantityExceedsOwned_RejectsAndLeavesStateUnchanged() throws Exception {
+        // Baseline: user owns 5 shares of TCS @ 3850, cash = 50,000.00, 0 transactions
+        HoldingEntity initialHolding = holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
+        portfolio.setCashBalance(new BigDecimal("50000.00"));
+        portfolioRepository.save(portfolio);
+
+        // Attempt SELL 10 shares (owns only 5)
+        TradeRequest request = new TradeRequest("TCS", 10);
+
+        mockMvc.perform(post("/api/v1/trades/sell")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.message").value(containsString("Insufficient holdings")));
+
+        // Verify state is completely unchanged
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("50000.00"));
+
+        HoldingEntity currentHolding = holdingRepository.findById(initialHolding.getId()).orElseThrow();
+        assertThat(currentHolding.getQuantity()).isEqualTo(5);
+        assertThat(currentHolding.getAverageBuyPrice()).isEqualByComparingTo(new BigDecimal("3850.00"));
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Negative Test: SELL a stock for which user has no holding should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testSellNotOwnedStock_RejectsAndLeavesStateUnchanged() throws Exception {
+        // Baseline: user owns 5 shares of TCS @ 3850, cash = 50,000.00, 0 transactions
+        HoldingEntity initialHolding = holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
+        portfolio.setCashBalance(new BigDecimal("50000.00"));
+        portfolioRepository.save(portfolio);
+
+        // Attempt SELL 5 shares of INFY (owns 0 shares of INFY)
+        TradeRequest request = new TradeRequest("INFY", 5);
+
+        mockMvc.perform(post("/api/v1/trades/sell")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.message").value(containsString("Insufficient holdings")));
+
+        // Verify state is completely unchanged
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("50000.00"));
+
+        List<HoldingEntity> holdings = holdingRepository.findByPortfolioId(portfolio.getId());
+        assertThat(holdings).hasSize(1);
+        assertThat(holdings.get(0).getStock().getSymbol()).isEqualTo("TCS");
+        assertThat(holdings.get(0).getQuantity()).isEqualTo(5);
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Validation Test: BUY with zero quantity should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testBuyZeroQuantity_RejectsAndLeavesStateUnchanged() throws Exception {
+        TradeRequest request = new TradeRequest("TCS", 0);
+
+        mockMvc.perform(post("/api/v1/trades/buy")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.validationErrors.quantity").isNotEmpty());
+
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Validation Test: BUY with negative quantity should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testBuyNegativeQuantity_RejectsAndLeavesStateUnchanged() throws Exception {
+        TradeRequest request = new TradeRequest("TCS", -5);
+
+        mockMvc.perform(post("/api/v1/trades/buy")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.validationErrors.quantity").isNotEmpty());
+
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Validation Test: SELL with zero quantity should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testSellZeroQuantity_RejectsAndLeavesStateUnchanged() throws Exception {
+        // Baseline: user owns 5 shares of TCS
+        HoldingEntity initialHolding = holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
+        portfolio.setCashBalance(new BigDecimal("50000.00"));
+        portfolioRepository.save(portfolio);
+
+        TradeRequest request = new TradeRequest("TCS", 0);
+
+        mockMvc.perform(post("/api/v1/trades/sell")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.validationErrors.quantity").isNotEmpty());
+
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("50000.00"));
+
+        HoldingEntity currentHolding = holdingRepository.findById(initialHolding.getId()).orElseThrow();
+        assertThat(currentHolding.getQuantity()).isEqualTo(5);
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Validation Test: SELL with negative quantity should reject with 400 and leave cash, holdings, and txs unchanged")
+    void testSellNegativeQuantity_RejectsAndLeavesStateUnchanged() throws Exception {
+        // Baseline: user owns 5 shares of TCS
+        HoldingEntity initialHolding = holdingRepository.save(new HoldingEntity(portfolio, tcs, 5, new BigDecimal("3850.00")));
+        portfolio.setCashBalance(new BigDecimal("50000.00"));
+        portfolioRepository.save(portfolio);
+
+        TradeRequest request = new TradeRequest("TCS", -3);
+
+        mockMvc.perform(post("/api/v1/trades/sell")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.error").value("Bad Request"))
+            .andExpect(jsonPath("$.validationErrors.quantity").isNotEmpty());
+
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("50000.00"));
+
+        HoldingEntity currentHolding = holdingRepository.findById(initialHolding.getId()).orElseThrow();
+        assertThat(currentHolding.getQuantity()).isEqualTo(5);
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Negative Test: POST /api/v1/trades/buy with unknown stock should return 404 and make no mutations")
+    void testBuyUnknownStock() throws Exception {
+        TradeRequest request = new TradeRequest("UNKNOWN_TICKER", 1);
+
+        mockMvc.perform(post("/api/v1/trades/buy")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.error").value("Not Found"));
+
+        PortfolioEntity p = portfolioRepository.findById(portfolio.getId()).orElseThrow();
+        assertThat(p.getCashBalance()).isEqualByComparingTo(new BigDecimal("100000.00"));
+        assertThat(holdingRepository.findByPortfolioId(portfolio.getId())).isEmpty();
+        assertThat(transactionRepository.findByPortfolioIdOrderByCreatedAtDesc(portfolio.getId())).isEmpty();
     }
 }

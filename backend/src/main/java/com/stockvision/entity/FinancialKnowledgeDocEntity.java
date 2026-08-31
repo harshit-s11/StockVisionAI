@@ -1,6 +1,7 @@
 package com.stockvision.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Type;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,7 +22,7 @@ public class FinancialKnowledgeDocEntity {
     @Column(name = "chunk_index", nullable = false)
     private Integer chunkIndex;
 
-    @Convert(converter = VectorConverter.class)
+    @Type(PgVectorType.class)
     @Column(name = "embedding", columnDefinition = "vector(768)")
     private float[] embedding;
 

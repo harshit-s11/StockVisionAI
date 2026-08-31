@@ -40,7 +40,7 @@ public class RagService {
 
         try {
             float[] queryVector = embeddingService.embedText(query);
-            String vectorStr = vectorConverter.convertToDatabaseColumn(queryVector);
+            String vectorStr = vectorConverter.toVectorString(queryVector);
             return docRepository.findSimilarDocuments(vectorStr, limit);
         } catch (Exception ex) {
             // Fallback gracefully to non-vector retrieval if embedding fails or during tests

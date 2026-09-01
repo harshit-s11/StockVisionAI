@@ -36,7 +36,7 @@ StockVision AI is an enterprise-grade portfolio management, market analytics, an
           ┌───────────────────────────┼───────────────────────────┐
           ▼                           ▼                           ▼
 PostgreSQL 16 + pgvector       Gemini v1beta API           Spring Security 6
-(Flyway V1, V2, V3)           (gemini-2.5-flash)           (Stateless JWT)
+(Flyway V1, V2, V3)           (gemini-3.6-flash)           (Stateless JWT)
 ```
 
 ---
@@ -118,15 +118,15 @@ Copy `.env.example` to `.env` for local configuration:
 # PostgreSQL Database Configuration
 POSTGRES_DB=stockvision
 POSTGRES_USER=stockvision_user
-POSTGRES_PASSWORD=stockvision_secret
+POSTGRES_PASSWORD=your_secure_postgres_password_here
 
 # Spring Security / JWT
-JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970337336763979244226452948404D6351655468576D5A7134743777217A25432A
+JWT_SECRET=your_secure_256_bit_jwt_secret_key_here
 JWT_EXPIRATION_MS=86400000
 
 # Google Gemini AI & RAG Configuration
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.6-flash
 GEMINI_EMBEDDING_MODEL=gemini-embedding-2
 GEMINI_EMBEDDING_DIMENSION=768
 RAG_TOP_K=5
@@ -233,7 +233,7 @@ All financial metrics are calculated on the backend using `java.math.BigDecimal`
 
 ```text
 Backend Test Suite (Maven / JUnit 5 / Mockito / Integration):
-- Tests run: 64
+- Tests run: 87
 - Failures:  0
 - Errors:    0
 - Skipped:   0

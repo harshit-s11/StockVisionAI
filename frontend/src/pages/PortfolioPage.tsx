@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { usePortfolio } from '../hooks/usePortfolio';
+import { useMarketData } from '../hooks/useMarketData';
 import { MetricCard } from '../components/common/MetricCard';
 import { HoldingsTable } from '../components/portfolio/HoldingsTable';
+import { AllocationChart } from '../components/portfolio/AllocationChart';
 import { TradeModal } from '../components/trading/TradeModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
@@ -11,6 +13,7 @@ import { Briefcase, Wallet, TrendingUp, Activity, RefreshCw } from 'lucide-react
 
 export const PortfolioPage: React.FC = () => {
   const { summary, holdings, isLoading, error, refresh } = usePortfolio();
+  const { stocks } = useMarketData();
   const [selectedStock, setSelectedStock] = useState<StockResponse | null>(null);
   const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
@@ -84,6 +87,10 @@ export const PortfolioPage: React.FC = () => {
         </div>
       )}
 
+      {/* Asset Allocation & Sector Breakdown Chart */}
+      <AllocationChart summary={summary} holdings={holdings} stocks={stocks} />
+
+      {/* Active Positions */}
       <div className="space-y-4">
         <h2 className="text-base font-bold text-white">Active Positions</h2>
         <HoldingsTable holdings={holdings} onTradeStock={handleOpenTrade} />

@@ -5,6 +5,7 @@ import { MetricCard } from '../components/common/MetricCard';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { HoldingsTable } from '../components/portfolio/HoldingsTable';
+import { AllocationChart } from '../components/portfolio/AllocationChart';
 import { StockTable } from '../components/market/StockTable';
 import { TradeModal } from '../components/trading/TradeModal';
 import { StockAnalysisModal } from '../components/ai/StockAnalysisModal';
@@ -118,6 +119,9 @@ export const DashboardPage: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Asset Allocation & Sector Visualization */}
+      <AllocationChart summary={summary} holdings={holdings} stocks={stocks} />
 
       {/* Holdings Section */}
       <div className="space-y-4">

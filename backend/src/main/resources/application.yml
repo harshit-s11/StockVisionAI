@@ -42,3 +42,10 @@ gemini:
   embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-2}
   embedding-dimension: ${GEMINI_EMBEDDING_DIMENSION:768}
   rag-top-k: ${RAG_TOP_K:5}
+market:
+  simulation:
+    enabled: ${MARKET_SIMULATION_ENABLED:true}
+    interval-ms: ${MARKET_SIMULATION_INTERVAL_MS:15000}
+    initial-delay-ms: ${MARKET_SIMULATION_INITIAL_DELAY_MS:10000}
+    max-change-percent: ${MARKET_SIMULATION_MAX_CHANGE_PERCENT:1.50}
+    min-price: ${MARKET_SIMULATION_MIN_PRICE:1.00}

@@ -1,37 +1,67 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StockResponse } from '../types';
 import { marketApi } from '../api/marketApi';
 
-export function useMarketData() {
+export interface UseMarketDataOptions {
+  pollingIntervalMs?: number;
+  autoRefresh?: boolean;
+}
+
+export function useMarketData(options: UseMarketDataOptions = {}) {
+  const { pollingIntervalMs = 15000, autoRefresh = true } = options;
   const [stocks, setStocks] = useState<StockResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
-  const fetchStocks = useCallback(async () => {
-    setIsLoading(true);
+  const fetchStocks = useCallback(async (isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const data = await marketApi.getAllStocks();
-      setStocks(data);
+      if (isMountedRef.current) {
+        setStocks(data);
+      }
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'message' in err) {
-        setError((err as { message: string }).message);
-      } else {
-        setError('Failed to load market catalog');
+      if (isMountedRef.current) {
+        if (err && typeof err === 'object' && 'message' in err) {
+          setError((err as { message: string }).message);
+        } else {
+          setError('Failed to load market catalog');
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current && !isBackground) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchStocks();
-  }, [fetchStocks]);
+    isMountedRef.current = true;
+    fetchStocks(false);
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    if (autoRefresh && pollingIntervalMs > 0) {
+      intervalId = setInterval(() => {
+        fetchStocks(true);
+      }, pollingIntervalMs);
+    }
+
+    return () => {
+      isMountedRef.current = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [fetchStocks, autoRefresh, pollingIntervalMs]);
 
   return {
     stocks,
     isLoading,
     error,
-    refresh: fetchStocks,
+    refresh: () => fetchStocks(false),
   };
 }

@@ -26,3 +26,6 @@ gemini:
   embedding-model: gemini-embedding-2
   embedding-dimension: 768
   rag-top-k: 5
+market:
+  simulation:
+    enabled: false

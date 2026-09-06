@@ -12,7 +12,7 @@ StockVision AI is an enterprise-grade portfolio management, market analytics, an
 * **Multi-Tenant Portfolio Tracking:** Server-authoritative calculations for Total Invested, Holdings Value, Total Portfolio Value, Unrealized P&L, Portfolio Return %, and Holding Allocation %.
 * **Stateless JWT Authentication:** Secure registration with automatic ₹100,000 demo capital allocation, BCrypt (cost factor 12) password hashing, and token-based session validation.
 * **Atomic Trading Engine:** ACID-compliant BUY and SELL execution protected by JPA pessimistic write locks (`@Lock(LockModeType.PESSIMISTIC_WRITE)`) and dynamic weighted-average cost basis recalculation.
-* **Market Equities Catalog:** Searchable and filterable catalog of top Indian market equities with 24h change metrics and sector classification.
+* **Dynamic Market Equities Catalog:** Searchable and filterable catalog of top Indian market equities with scheduled stochastic price fluctuations (15s interval) and sector classification.
 * **Immutable Transaction History:** Chronological, tamper-resistant execution logs for all user trades.
 * **Gemini AI Advisor with RAG:** Interactive financial chat and fundamental stock analysis powered by Google Gemini (v1beta API) and pgvector cosine similarity search (`<=>`) across curated financial knowledge articles.
 * **Strict AI Safety Boundaries:** The AI subsystem is advisory only. Gemini models operate in a strictly read-only mode via server-enforced tools and cannot execute trades, deduct cash, or mutate database state.
@@ -50,6 +50,7 @@ PostgreSQL 16 + pgvector       Gemini v1beta API           Spring Security 6
 | **AI / RAG** | Google Gemini Generative Language REST API (`v1beta`), HNSW Cosine Indexing |
 | **Frontend** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.10, Tailwind CSS 3.4.15, React Router 6.28.0 |
 | **Testing** | JUnit 5, Mockito, AssertJ, Testcontainers, Vitest 2.1.5, Testing Library |
+| **CI / CD** | GitHub Actions (Automated JDK 21 Maven test + Node 22 test/typecheck/build pipeline) |
 | **Deployment** | Multi-stage Dockerfiles, Nginx 1.27 Alpine, Docker Compose v5 |
 
 ---
@@ -130,7 +131,21 @@ GEMINI_MODEL=gemini-3.6-flash
 GEMINI_EMBEDDING_MODEL=gemini-embedding-2
 GEMINI_EMBEDDING_DIMENSION=768
 RAG_TOP_K=5
+
+# Dynamic Market Price Simulation Engine
+MARKET_SIMULATION_ENABLED=true
+MARKET_SIMULATION_INTERVAL_MS=15000
+MARKET_SIMULATION_INITIAL_DELAY_MS=10000
+MARKET_SIMULATION_MAX_CHANGE_PERCENT=1.50
+MARKET_SIMULATION_MIN_PRICE=1.00
 ```
+
+### Market Simulation Parameters
+* **`MARKET_SIMULATION_ENABLED`** (`true`): Controls whether the background simulated price ticker periodically updates demo stock quotes. Can be disabled by setting to `false`.
+* **`MARKET_SIMULATION_INTERVAL_MS`** (`15000`): Simulation tick frequency in milliseconds (default: 15 seconds).
+* **`MARKET_SIMULATION_INITIAL_DELAY_MS`** (`10000`): Initial startup delay before the first simulation tick executes in milliseconds (default: 10 seconds).
+* **`MARKET_SIMULATION_MAX_CHANGE_PERCENT`** (`1.50`): Maximum percentage price fluctuation per simulation tick ($\pm 1.50\%$).
+* **`MARKET_SIMULATION_MIN_PRICE`** (`1.00`): Absolute minimum price floor preventing simulated equity prices from dropping below ₹1.00.
 
 ---
 
@@ -232,17 +247,20 @@ All financial metrics are calculated on the backend using `java.math.BigDecimal`
 ## Automated Test Coverage
 
 ```text
-Backend Test Suite (Maven / JUnit 5 / Mockito / Integration):
-- Tests run: 87
+Backend Test Suite (Maven / JUnit 5 / Mockito / H2 PostgreSQL Mode):
+- Tests run: 103
 - Failures:  0
 - Errors:    0
 - Skipped:   0
 
-Frontend Test Suite (Vitest / Testing Library / TypeScript):
-- Test Files: 5 passed
-- Tests:      7 passed
+Frontend Test Suite (Vitest / React Testing Library / TypeScript):
+- Test Files: 6 passed
+- Tests run:  15
 - Failures:   0
 - Errors:     0
+
+Total Automated Tests: 118 passed (100% pass rate)
+TypeScript Diagnostics (tsc --noEmit): 0 errors
 ```
 
 ---
@@ -279,4 +297,4 @@ StockVision AI replaces the legacy Flask monolithic prototype with a modern, sca
 * Refresh token rotation and HTTP-only cookie session management.
 * Distributed Redis caching for high-throughput market quotes.
 * Advanced technical charting with interactive candlesticks and depth charts.
-* Automated CI/CD pipelines with GitHub Actions and Kubernetes deployment manifests.
+* Kubernetes deployment manifests and Helm charts for cluster orchestration.

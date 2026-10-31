@@ -6,7 +6,9 @@ import com.stockvision.config.GeminiProperties;
 import com.stockvision.exception.GeminiResponseException;
 import com.stockvision.exception.GeminiUnavailableException;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
@@ -24,7 +26,9 @@ public class GeminiClient {
     public GeminiClient(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.geminiProperties = geminiProperties;
         this.objectMapper = objectMapper;
-        this.restClient = RestClient.builder().build();
+        this.restClient = RestClient.builder()
+            .requestFactory(new SimpleClientHttpRequestFactory())
+            .build();
     }
 
     public String generateText(String systemInstruction, String prompt) {
@@ -74,6 +78,13 @@ public class GeminiClient {
             throw new GeminiResponseException("Gemini returned an empty or malformed response");
         } catch (GeminiUnavailableException | GeminiResponseException ex) {
             throw ex;
+        } catch (HttpStatusCodeException ex) {
+            if (ex.getStatusCode().value() == 429) {
+                throw new GeminiUnavailableException("Gemini API rate limit or quota exceeded. Please try again shortly.");
+            } else if (ex.getStatusCode().value() == 403 || ex.getStatusCode().value() == 400) {
+                throw new GeminiUnavailableException("Gemini API key is invalid or unauthorized.");
+            }
+            throw new GeminiUnavailableException("Gemini API service error: " + ex.getStatusCode());
         } catch (Exception ex) {
             throw new GeminiUnavailableException("Failed to communicate with Gemini API: " + ex.getMessage());
         }
@@ -116,6 +127,13 @@ public class GeminiClient {
             throw new GeminiResponseException("Gemini returned invalid embedding format");
         } catch (GeminiUnavailableException | GeminiResponseException ex) {
             throw ex;
+        } catch (HttpStatusCodeException ex) {
+            if (ex.getStatusCode().value() == 429) {
+                throw new GeminiUnavailableException("Gemini API rate limit or quota exceeded. Please try again shortly.");
+            } else if (ex.getStatusCode().value() == 403 || ex.getStatusCode().value() == 400) {
+                throw new GeminiUnavailableException("Gemini API key is invalid or unauthorized.");
+            }
+            throw new GeminiUnavailableException("Failed to generate embedding with Gemini API: " + ex.getStatusCode());
         } catch (Exception ex) {
             throw new GeminiUnavailableException("Failed to generate embedding with Gemini API: " + ex.getMessage());
         }

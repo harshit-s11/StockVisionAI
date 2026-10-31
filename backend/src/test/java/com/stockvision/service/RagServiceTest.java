@@ -92,4 +92,17 @@ class RagServiceTest {
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getTitle()).isEqualTo("Fallback Doc");
     }
+
+    @Test
+    @DisplayName("Should trigger on-demand seeding when docRepository is empty and seeder is provided")
+    void testTriggersOnDemandSeedingWhenEmpty() {
+        RagKnowledgeSeeder mockSeeder = mock(RagKnowledgeSeeder.class);
+        RagService service = new RagService(embeddingService, docRepository, geminiProperties, mockSeeder);
+
+        when(docRepository.count()).thenReturn(0L);
+
+        service.retrieveRelevantKnowledge("portfolio", 3);
+
+        verify(mockSeeder, times(1)).seedKnowledgeDocs();
+    }
 }

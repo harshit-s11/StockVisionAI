@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -31,11 +32,15 @@ public class RagKnowledgeSeeder implements ApplicationRunner {
     }
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
-        seedKnowledgeDocs();
+        try {
+            seedKnowledgeDocs();
+        } catch (Exception ex) {
+            log.error("Failed to seed knowledge documents during startup: {}", ex.getMessage(), ex);
+        }
     }
 
+    @Transactional
     public void seedKnowledgeDocs() {
         List<KnowledgeSeedItem> items = List.of(
             new KnowledgeSeedItem(

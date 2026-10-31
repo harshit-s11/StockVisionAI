@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Sparkles, AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { StockAnalysisResponse } from '../../types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { MarkdownRenderer } from '../common/MarkdownRenderer';
 
 interface StockAnalysisModalProps {
   isOpen: boolean;
@@ -59,11 +60,9 @@ export const StockAnalysisModal: React.FC<StockAnalysisModalProps> = ({
         ) : analysisData ? (
           <div className="space-y-6">
             {/* Analysis Narrative */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-2">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Analysis Summary</h3>
-              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-line">
-                {analysisData.analysis}
-              </p>
+              <MarkdownRenderer content={analysisData.analysis} />
             </div>
 
             {/* Key Factors & Risks */}
@@ -99,13 +98,24 @@ export const StockAnalysisModal: React.FC<StockAnalysisModalProps> = ({
 
             {/* Sources */}
             {analysisData.sources && analysisData.sources.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-slate-400 pt-2 border-t border-slate-800">
-                <BookOpen className="h-4 w-4 text-emerald-400" />
-                <span className="font-semibold">Grounded in Financial Docs:</span>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                  <BookOpen className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>Grounded in Financial Docs:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {analysisData.sources.map((src, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px]">
-                      {src.title}
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700/70 text-slate-300 text-xs shadow-sm"
+                      title={src.source ? `Source: ${src.source}` : undefined}
+                    >
+                      <span className="font-medium text-slate-200">{src.title}</span>
+                      {src.source && (
+                        <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700 font-semibold">
+                          {src.source}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>

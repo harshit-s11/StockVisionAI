@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,8 +27,13 @@ public class GeminiClient {
     public GeminiClient(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.geminiProperties = geminiProperties;
         this.objectMapper = objectMapper;
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(20));
+
         this.restClient = RestClient.builder()
-            .requestFactory(new SimpleClientHttpRequestFactory())
+            .requestFactory(requestFactory)
             .build();
     }
 
@@ -56,7 +62,8 @@ public class GeminiClient {
             ));
 
             requestBody.put("generationConfig", Map.of(
-                "temperature", 0.2
+                "temperature", 0.2,
+                "maxOutputTokens", 768
             ));
 
             String responseJson = restClient.post()

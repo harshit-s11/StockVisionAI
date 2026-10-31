@@ -4,6 +4,7 @@ import { useAiAdvisor } from '../../hooks/useAiAdvisor';
 import { AiChatResponse } from '../../types';
 import { ErrorAlert } from '../common/ErrorAlert';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { MarkdownRenderer } from '../common/MarkdownRenderer';
 
 export const AiChatPanel: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
@@ -93,34 +94,48 @@ export const AiChatPanel: React.FC = () => {
               <div
                 className={`max-w-2xl rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
                   item.role === 'user'
-                    ? 'bg-emerald-600 text-white font-medium rounded-br-none'
+                    ? 'bg-emerald-600 text-white font-medium rounded-br-none whitespace-pre-wrap'
                     : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none shadow-sm'
                 }`}
               >
-                {item.text}
+                {item.role === 'assistant' ? (
+                  <MarkdownRenderer content={item.text} />
+                ) : (
+                  item.text
+                )}
               </div>
 
               {item.data && (
                 <div className="max-w-2xl w-full space-y-2 text-xs">
                   {item.data.sources && item.data.sources.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-slate-400">
-                      <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="font-semibold text-slate-400">Knowledge Sources:</span>
-                      {item.data.sources.map((src, sIdx) => (
-                        <span
-                          key={sIdx}
-                          className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px]"
-                        >
-                          {src.title}
-                        </span>
-                      ))}
+                    <div className="rounded-xl border border-slate-800/80 bg-slate-950/40 p-3 space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                        <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>Retrieved Knowledge Sources:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {item.data.sources.map((src, sIdx) => (
+                          <span
+                            key={sIdx}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/70 text-slate-300 text-xs shadow-sm hover:border-slate-600 transition"
+                            title={src.source ? `Source: ${src.source}` : undefined}
+                          >
+                            <span className="font-medium text-slate-200">{src.title}</span>
+                            {src.source && (
+                              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700/80 font-semibold">
+                                {src.source}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {item.data.disclaimer && (
-                    <div className="flex items-start gap-1.5 text-[11px] text-amber-300/80 bg-amber-950/20 border border-amber-900/30 p-2 rounded-lg">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                      <span>{item.data.disclaimer}</span>
+                    <div className="flex items-start gap-2 text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-900/40 p-2.5 rounded-xl">
+                      <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{item.data.disclaimer}</span>
                     </div>
                   )}
                 </div>

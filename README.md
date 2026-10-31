@@ -7,6 +7,16 @@ StockVision AI is an enterprise-grade portfolio management, market analytics, an
 
 ---
 
+## Live Demo
+
+* **Web Application (Vercel):** [https://<VERCEL_URL>](https://<VERCEL_URL>)
+* **API Service (Render):** [https://<RENDER_URL>/api/v1/health](https://<RENDER_URL>/api/v1/health)
+
+> [!NOTE]
+> **Free Tier Cold Start:** The live deployment runs on free cloud tiers (Vercel + Render + Neon). Inactive backend services spin down automatically. The initial page load or API request may take approximately 1–2 minutes to spin up the container and database. Subsequent requests respond immediately.
+
+---
+
 ## Key Features
 
 * **Multi-Tenant Portfolio Tracking:** Server-authoritative calculations for Total Invested, Holdings Value, Total Portfolio Value, Unrealized P&L, Portfolio Return %, and Holding Allocation %.

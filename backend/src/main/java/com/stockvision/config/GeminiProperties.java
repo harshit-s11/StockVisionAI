@@ -11,6 +11,7 @@ public class GeminiProperties {
     private String model = "gemini-3.6-flash";
     private String embeddingModel = "gemini-embedding-2";
     private Integer embeddingDimension = 768;
+    private Integer maxOutputTokens = 1200;
     private Integer ragTopK = 5;
 
     public boolean isConfigured() {
@@ -28,6 +29,9 @@ public class GeminiProperties {
 
     public Integer getEmbeddingDimension() { return embeddingDimension; }
     public void setEmbeddingDimension(Integer embeddingDimension) { this.embeddingDimension = embeddingDimension; }
+
+    public Integer getMaxOutputTokens() { return maxOutputTokens; }
+    public void setMaxOutputTokens(Integer maxOutputTokens) { this.maxOutputTokens = maxOutputTokens; }
 
     public Integer getRagTopK() { return ragTopK; }
     public void setRagTopK(Integer ragTopK) { this.ragTopK = ragTopK; }

@@ -106,6 +106,30 @@ class AiAdvisorControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/ai/chat preserves complete full answer text in API response DTO without truncation")
+    void testChatPreservesFullAnswerInApiDto() throws Exception {
+        String longFullAnswer = "### Portfolio Diversification Analysis\n\n"
+            + "Your equity portfolio currently has **very low diversification**, as 100% of your invested capital is concentrated in a single stock (TCS) within the Information Technology sector.\n\n"
+            + "### Key Recommendations\n"
+            + "* Consider allocating capital across defensive sectors such as FMCG or Healthcare.\n"
+            + "* Rebalance positions to prevent sector concentration risk.\n\n"
+            + "Educational takeaway: Diversification lowers non-systematic volatility without sacrificing expected returns.";
+
+        when(geminiClient.generateText(anyString(), anyString())).thenReturn(longFullAnswer);
+
+        AiChatRequest request = new AiChatRequest("Explain my diversification in full detail");
+
+        mockMvc.perform(post("/api/v1/ai/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.answer").value(longFullAnswer))
+            .andExpect(jsonPath("$.disclaimer").isNotEmpty())
+            .andExpect(jsonPath("$.sources").isArray());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/ai/chat without token should return 401 Unauthorized")
     void testChatEndpointUnauthorized() throws Exception {
         AiChatRequest request = new AiChatRequest("Analyze portfolio");

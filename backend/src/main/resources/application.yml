@@ -49,7 +49,9 @@ gemini:
   model: ${GEMINI_MODEL:gemini-3.6-flash}
   embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-2}
   embedding-dimension: ${GEMINI_EMBEDDING_DIMENSION:768}
+  max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:1200}
   rag-top-k: ${RAG_TOP_K:5}
+
 market:
   simulation:
     enabled: ${MARKET_SIMULATION_ENABLED:true}

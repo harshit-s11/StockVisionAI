@@ -105,7 +105,7 @@ class AiAdvisorServiceTest {
     }
 
     @Test
-    @DisplayName("chat: system instructions contain Markdown rules and SVG prohibition")
+    @DisplayName("chat: system instructions contain Markdown rules, completion requirement, and SVG prohibition")
     void testChatSystemInstructionContainsMarkdownAndSafetyRules() {
         PortfolioSummaryResponse summary = new PortfolioSummaryResponse(
             new BigDecimal("50000.00"),
@@ -128,10 +128,12 @@ class AiAdvisorServiceTest {
         verify(geminiClient).generateText(systemInstructionCaptor.capture(), userContextCaptor.capture());
 
         String systemInstruction = systemInstructionCaptor.getValue();
-        assertThat(systemInstruction).contains("RESPONSE FORMATTING REQUIREMENTS");
+        assertThat(systemInstruction).contains("RESPONSE FORMATTING & COMPLETION REQUIREMENTS");
         assertThat(systemInstruction).contains("standard Markdown only");
         assertThat(systemInstruction).contains("short, direct answer first");
         assertThat(systemInstruction).contains("Clear section headings (use ###)");
+        assertThat(systemInstruction).contains("ALWAYS finish all sentences");
+        assertThat(systemInstruction).contains("Never truncate or stop mid-sentence");
         assertThat(systemInstruction).contains("Never output raw HTML, XML, or SVG code");
         assertThat(systemInstruction).contains("Do not append bracketed source citations");
         assertThat(systemInstruction).contains("EDUCATIONAL ANALYSIS ONLY");

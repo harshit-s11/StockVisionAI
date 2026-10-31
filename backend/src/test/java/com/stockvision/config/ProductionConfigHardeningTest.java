@@ -5,6 +5,7 @@ import com.stockvision.dto.ApiErrorResponse;
 import com.stockvision.entity.PortfolioEntity;
 import com.stockvision.entity.Role;
 import com.stockvision.entity.UserEntity;
+import com.stockvision.exception.GeminiUnavailableException;
 import com.stockvision.exception.GlobalExceptionHandler;
 import com.stockvision.repository.PortfolioRepository;
 import com.stockvision.repository.UserRepository;
@@ -27,9 +28,12 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -55,6 +59,9 @@ class ProductionConfigHardeningTest {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.stockvision.client.GeminiClient geminiClient;
 
     @Test
     @DisplayName("Security: JWT Provider must fail fast on missing or blank secret")
@@ -165,5 +172,38 @@ class ProductionConfigHardeningTest {
             .andExpect(status().isUnsupportedMediaType())
             .andExpect(jsonPath("$.status").value(415))
             .andExpect(jsonPath("$.error").value("Unsupported Media Type"));
+    }
+
+    @Test
+    @DisplayName("CORS: Preflight request from allowed origin returns 200 with Allow-Origin header")
+    void testCorsAllowedOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/health")
+                .header("Origin", "http://localhost:5173")
+                .header("Access-Control-Request-Method", "GET"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
+    @DisplayName("CORS: Request from unallowed origin is rejected with 403 Forbidden")
+    void testCorsUnallowedOriginRejected() throws Exception {
+        mockMvc.perform(options("/api/v1/health")
+                .header("Origin", "https://unauthorized-domain.com")
+                .header("Access-Control-Request-Method", "GET"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Gemini Tolerance: GeminiUnavailableException returns 503 with friendly message, no stack trace")
+    void testGeminiUnavailableExceptionReturns503() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/ai/chat");
+        GeminiUnavailableException ex = new GeminiUnavailableException("Gemini API rate limit or quota exceeded. Please try again shortly.");
+
+        ResponseEntity<ApiErrorResponse> response = globalExceptionHandler.handleGeminiUnavailable(ex, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(503);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getError()).isEqualTo("Service Unavailable");
+        assertThat(response.getBody().getMessage()).isEqualTo("Gemini API rate limit or quota exceeded. Please try again shortly.");
     }
 }

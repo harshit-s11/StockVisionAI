@@ -29,9 +29,12 @@ USER stockvision:stockvision
 # Expose backend port
 EXPOSE 8080
 
+# Configure low-RAM Render Free tier JVM options
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=65 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1 -Djava.security.egd=file:/dev/./urandom"
+
 # Health check using HTTP endpoint
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=5 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/api/v1/health || exit 1
 
 # Execute application
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

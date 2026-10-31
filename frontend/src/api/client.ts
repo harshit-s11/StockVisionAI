@@ -16,7 +16,8 @@ export class ApiException extends Error {
 
 export async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retries = 1
 ): Promise<T> {
   const token = localStorage.getItem('stockvision_token');
   const headers = new Headers(options.headers || {});
@@ -38,10 +39,14 @@ export async function request<T>(
       headers,
     });
   } catch {
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return request<T>(endpoint, options, retries - 1);
+    }
     throw new ApiException({
       status: 0,
       error: 'Network Error',
-      message: 'Unable to connect to StockVision backend server. Please verify backend is running on port 8080.',
+      message: 'Server is waking up (can take up to 1–2 minutes). Please retry shortly.',
     });
   }
 
